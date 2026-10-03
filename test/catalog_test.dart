@@ -140,6 +140,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 条知识'), findsOneWidget);
     expect(find.text('芝麻属于主要过敏原'), findsOneWidget);
+    await tester.ensureVisible(find.text('芝麻属于主要过敏原'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('芝麻属于主要过敏原'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(DraggableScrollableSheet),
+        matching: find.text('香油和芝麻酱均需关注。'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('内容依据 · FDA · Food Allergies'), findsOneWidget);
+    expect(find.text('操作要点'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

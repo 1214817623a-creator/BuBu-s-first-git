@@ -953,11 +953,13 @@ void showKnowledge(BuildContext context, KitchenState state, Knowledge k) {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              k.explanation,
-              style: const TextStyle(fontSize: 17, height: 1.9),
-            ),
-            const SizedBox(height: 24),
+            if (k.explanation != k.summary) ...[
+              Text(
+                k.explanation,
+                style: const TextStyle(fontSize: 17, height: 1.9),
+              ),
+              const SizedBox(height: 24),
+            ],
             Panel(
               color: sage,
               child: Column(
