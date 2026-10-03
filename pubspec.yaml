@@ -1,0 +1,21 @@
+name: bubu_kitchen
+description: 布布大王的菜谱，一步一步学会做饭，也懂为什么。
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.5.3
+  url_launcher: ^6.3.2
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: KitchenSans
+      fonts:
+        - asset: assets/fonts/NotoSansSC.ttf
