@@ -19,5 +19,5 @@ for(const [url,row] of sources){
   for(const k of row.cards)md+=`- ${k.id}：${k.title}\n`;
   md+='\n';
 }
-fs.writeFileSync('docs/V1.1.0内容来源.md',md);
+fs.writeFileSync('docs/V1.1.0内容来源.md',md.trimEnd()+'\n');
 console.log(JSON.stringify({recipes:recipes.length,knowledge:cards.length,authoritativePages:sources.size}));

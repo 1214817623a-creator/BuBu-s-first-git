@@ -1,10 +1,22 @@
-# 布布大王的菜谱 · Android V1
+# 布布大王的菜谱 · Android V1.1.0
 
 一个离线厨房学习 APP：告诉你怎么做，也解释为什么。Flutter 实现，安卓为主要目标，同时提供本机浏览器预览。
 
 这个是布布（没有一二宝）的第一个仓库，开启了学习GitHub的第一步！
 
-第一版 APK、安装说明和文件校验值保存在 `dist/`，版本标记为 `v1.0.0`。
+第二版为 `v1.1.0`（构建号2），安装包及校验文件发布到 GitHub Releases。第一版 `v1.0.0` 与原安装包保留，可追溯和回退源码。
+
+## V1.1.0 更新
+
+- 新增100道家庭常见菜式，总计106道；热门分类与高参与度菜单作为选品参考，配比和步骤独立编写。
+- 新增300条机构来源知识，总计318条；新增内容来自31个机构资料页面，详情附原文链接。
+- 多标签同时匹配；多个搜索词用空格、逗号或顿号分开，同时匹配菜名、标签和食材。
+- 扩充菜系、做法与食材分类；菜谱每批24道、知识每批30条，支持继续加载与全文检索。
+- 用量与操作备注分行，份量换算保持数值和单位清晰；安全熟度与口感分别判断。
+- 菜品封面按食材、形态与盛装方式绘制原创示意插画；步骤图独立保留，图片不依赖网络。
+- 保留V1的菜谱和知识ID以及本地保存格式，延续收藏、备料和烹饪进度。
+
+逐条来源见 [内容来源与核查索引](docs/V1.1.0内容来源.md)，更新说明见 [发布说明](docs/V1.1.0发布说明.md)。
 
 ## 第一版内容
 
@@ -20,7 +32,7 @@
 
 ## 在手机上体验
 
-编译成功后，安装包放在 `dist/布布大王的菜谱-v1.0.0.apk`。把 APK 发到安卓手机，点击安装；手机可能会要求为接收文件的应用允许「安装未知应用」。
+从 [V1.1.0 Release](https://github.com/1214817623a-creator/BuBu-s-first-git/releases/tag/v1.1.0) 下载 `布布大王的菜谱-v1.1.0.apk`。把 APK 发到安卓手机，点击安装；手机可能会要求为接收文件的应用允许「安装未知应用」。已有V1时直接覆盖安装，保留本地记录；不要先卸载。构建产物也保存在本机 `dist/`。
 
 首次建议按「首页 → 番茄牛腩 → 准备食材 → 勾选食材 → 开始做菜」体验。可点知识卡、字号按钮和计时按钮；返回首页会保留进度。
 
@@ -36,15 +48,19 @@
 
 本次使用 Flutter 3.47.5 / Dart 3.13.4、Android SDK 36 和 JDK 21。构建工具位于 `.tooling`，不进入版本控制。部分 Windows 原生工具无法处理中文路径，构建时临时用 `B:` 映射项目目录。
 
+个人体验版发行构建固定读取本机 `.tooling/signing/v1-debug.keystore`，与V1签名一致。该文件不进入Git；换机器构建前需安全恢复同一证书，不能生成新证书替代后直接给旧版用户升级。用于应用商店的正式签名应另行规划。
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools/flutter-task.ps1 check
 powershell -ExecutionPolicy Bypass -File tools/flutter-task.ps1 apk
 powershell -ExecutionPolicy Bypass -File tools/flutter-task.ps1 web
 ```
 
-测试覆盖月份推荐、知识引用完整性、份量换算、本地进度恢复、计时恢复/暂停/去重/结束清理，以及 360、412、1100 像素宽下的首页、详情、备料和超大字号做菜模式。最终验证记录见 `docs/验证记录.md`。
+测试覆盖内容数量与来源、知识引用、组合筛选、分页与机构搜索、份量换算、本地进度与计时恢复，以及320、360、412、1100像素布局和全部106道菜品插画。第二版验证记录见 `docs/V1.1.0验证记录.md`；第一版记录仍在 `docs/验证记录.md`。
 
-`lib/content.dart` 是菜谱和知识内容，`lib/kitchen_state.dart` 负责本地状态和计时，`lib/main.dart` 是界面，`lib/food_art.dart` 是原创插画。安卓系统提醒实现在 `android/app/src/main/kotlin/com/bubu/bubu_kitchen/`。
+`assets/content/` 保存新增内容，`lib/content.dart` 保留旧内容与加载入口；`lib/catalog_loader.dart` 解析离线内容，`lib/catalog_filter.dart` 处理检索。`lib/ingredient_line.dart` 负责用料排版，`lib/dish_art.dart` 绘制菜品封面，`lib/food_art.dart` 绘制步骤示意。`lib/kitchen_state.dart` 负责本地状态和计时，`lib/main.dart` 组合界面。安卓系统提醒实现在 `android/app/src/main/kotlin/com/bubu/bubu_kitchen/`。
+
+运行 `node tools/content-audit.mjs` 可校验新增数量并重建来源索引。插画渲染回归图可通过 `flutter test test/capture_test.dart --update-goldens` 更新；文字使用测试字体，仅用于绘图回归，实际页面截图单独检查。
 
 ## 内容依据和授权
 

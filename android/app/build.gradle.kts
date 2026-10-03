@@ -30,11 +30,20 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("experienceRelease") {
+            // Preserve the V1 personal-experience identity across build users.
+            // The local keystore is ignored by Git; never publish it.
+            storeFile = rootProject.file("../.tooling/signing/v1-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("experienceRelease")
         }
     }
 }

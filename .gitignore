@@ -16,3 +16,5 @@ dist/*
 !dist/安装说明.txt
 !dist/SHA256.txt
 !dist/布布大王的菜谱-v1.0.0.apk
+!dist/安装说明-v1.1.0.txt
+!dist/SHA256-v1.1.0.txt
