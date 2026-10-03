@@ -1,7 +1,13 @@
 class Ingredient {
-  final String name, unit;
+  final String name, unit, note;
   final double amount;
-  const Ingredient(this.name, this.amount, this.unit);
+  const Ingredient(this.name, this.amount, this.unit, {this.note = ''});
+  factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
+    json['name'] as String,
+    (json['amount'] as num).toDouble(),
+    json['unit'] as String,
+    note: json['note'] as String? ?? '',
+  );
   String quantity(int servings, int base) {
     final n = amount * servings / base;
     return '${n == n.roundToDouble() ? n.toInt() : n.toStringAsFixed(1)}$unit';
@@ -23,6 +29,16 @@ class CookStep {
     this.watchPot = false,
     this.knowledge = const [],
   });
+  factory CookStep.fromJson(Map<String, dynamic> json) => CookStep(
+    json['title'] as String,
+    json['instruction'] as String,
+    json['cue'] as String,
+    json['art'] as String? ?? 'cut',
+    minutes: json['minutes'] as int? ?? 0,
+    safety: json['safety'] as String? ?? '',
+    watchPot: json['watchPot'] as bool? ?? false,
+    knowledge: List<String>.from(json['knowledge'] as List? ?? []),
+  );
 }
 
 class Recipe {
@@ -32,6 +48,8 @@ class Recipe {
   final List<int> months;
   final List<Ingredient> ingredients;
   final List<CookStep> steps;
+  final String sourceName, sourceUrl;
+  final String dishStyle;
   const Recipe({
     required this.id,
     required this.name,
@@ -47,8 +65,34 @@ class Recipe {
     required this.tools,
     required this.ingredients,
     required this.steps,
+    this.sourceName = '',
+    this.sourceUrl = '',
+    this.dishStyle = 'plate',
   });
   int get totalMinutes => activeMinutes + waitMinutes;
+  factory Recipe.fromJson(Map<String, dynamic> json) => Recipe(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    subtitle: json['subtitle'] as String,
+    description: json['description'] as String,
+    art: json['art'] as String,
+    color: json['color'] as int,
+    activeMinutes: json['activeMinutes'] as int,
+    waitMinutes: json['waitMinutes'] as int,
+    servings: json['servings'] as int? ?? 2,
+    tags: List<String>.from(json['tags'] as List),
+    months: List<int>.from(json['months'] as List),
+    tools: List<String>.from(json['tools'] as List),
+    ingredients: (json['ingredients'] as List)
+        .map((i) => Ingredient.fromJson(Map<String, dynamic>.from(i as Map)))
+        .toList(),
+    steps: (json['steps'] as List)
+        .map((s) => CookStep.fromJson(Map<String, dynamic>.from(s as Map)))
+        .toList(),
+    sourceName: json['sourceName'] as String,
+    sourceUrl: json['sourceUrl'] as String,
+    dishStyle: json['dishStyle'] as String,
+  );
 }
 
 class Knowledge {
@@ -60,6 +104,7 @@ class Knowledge {
       alternative,
       sourceName,
       sourceUrl;
+  final String actionTitle;
   const Knowledge(
     this.id,
     this.title,
@@ -69,7 +114,19 @@ class Knowledge {
     this.alternative, {
     this.sourceName = '布布厨房 · 家常烹饪实践',
     this.sourceUrl = '',
+    this.actionTitle = '换一种做法，会怎样？',
   });
+  factory Knowledge.fromJson(Map<String, dynamic> json) => Knowledge(
+    json['id'] as String,
+    json['title'] as String,
+    json['category'] as String,
+    json['summary'] as String,
+    json['explanation'] as String,
+    json['alternative'] as String,
+    sourceName: json['sourceName'] as String,
+    sourceUrl: json['sourceUrl'] as String,
+    actionTitle: json['actionTitle'] as String? ?? '操作要点',
+  );
 }
 
 class KitchenTimer {

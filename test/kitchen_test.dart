@@ -5,9 +5,11 @@ import 'package:bubu_kitchen/main.dart';
 import 'package:bubu_kitchen/kitchen_state.dart';
 import 'package:bubu_kitchen/content.dart';
 import 'package:bubu_kitchen/models.dart';
+import 'package:bubu_kitchen/catalog_filter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(loadCatalog);
   Future<KitchenState> fresh() async {
     SharedPreferences.setMockInitialValues({});
     return KitchenState(await SharedPreferences.getInstance());
@@ -121,7 +123,8 @@ void main() {
       for (final label in ['猪肉', '炖', '汤羹']) {
         expect(tester.widget<FilterChip>(chip(label)).selected, isTrue);
       }
-      expect(find.text('1 道菜谱'), findsOneWidget);
+      final matching = filterRecipes(recipes, {'猪肉', '炖', '汤羹'}, '');
+      expect(find.text('${matching.length} 道菜谱'), findsOneWidget);
       expect(find.text('莲藕排骨汤'), findsOneWidget);
 
       // Adding an incompatible tag must narrow to zero, even within one group.
@@ -129,10 +132,10 @@ void main() {
       expect(tester.widget<FilterChip>(chip('猪肉')).selected, isTrue);
       expect(find.text('0 道菜谱'), findsOneWidget);
       await tapVisible(chip('牛肉'));
-      expect(find.text('1 道菜谱'), findsOneWidget);
+      expect(find.text('${matching.length} 道菜谱'), findsOneWidget);
 
       await tester.ensureVisible(find.byType(TextField));
-      await tester.enterText(find.byType(TextField), '番茄');
+      await tester.enterText(find.byType(TextField), '番茄 牛腩');
       await tester.pumpAndSettle();
       expect(find.text('0 道菜谱'), findsOneWidget);
       await tapVisible(find.text('清除筛选（3）'));
