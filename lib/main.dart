@@ -209,7 +209,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int tab = 0;
-  String tag = '全部', query = '', knowledgeQuery = '';
+  final Set<String> selectedTags = {};
+  String query = '', knowledgeQuery = '';
   final search = TextEditingController();
   KitchenState get s => widget.state;
   @override
@@ -505,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   tab = 1;
                   query = name;
                   search.text = name;
-                  tag = '全部';
+                  selectedTags.clear();
                 }),
               ),
             )
@@ -530,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final list = recipes
         .where(
           (r) =>
-              (tag == '全部' || r.tags.contains(tag)) &&
+              selectedTags.every(r.tags.contains) &&
               (query.isEmpty ||
                   ('${r.name} ${r.tags.join(' ')} ${r.ingredients.map((i) => i.name).join(' ')}')
                       .contains(query.trim())),
@@ -557,6 +558,11 @@ class _HomeScreenState extends State<HomeScreen> {
         onChanged: (v) => setState(() => query = v),
       ),
       const SizedBox(height: 20),
+      const Text(
+        '标签可多选，菜谱需同时符合所选标签',
+        style: TextStyle(color: muted, fontSize: 13),
+      ),
+      const SizedBox(height: 12),
       ...[
         '菜系|家常菜',
         '做法|炒|炖|蒸',
@@ -584,9 +590,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   .map(
                     (t) => FilterChip(
                       label: Text(t),
-                      selected: tag == t,
-                      onSelected: (_) =>
-                          setState(() => tag = tag == t ? '全部' : t),
+                      selected: selectedTags.contains(t),
+                      onSelected: (selected) => setState(() {
+                        if (selected) {
+                          selectedTags.add(t);
+                        } else {
+                          selectedTags.remove(t);
+                        }
+                      }),
                       side: BorderSide.none,
                       backgroundColor: Colors.white,
                       selectedColor: const Color(0xFFFFDEC9),
@@ -600,10 +611,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text('${list.length} 道菜谱', style: const TextStyle(color: muted)),
           const Spacer(),
-          if (tag != '全部')
+          if (selectedTags.isNotEmpty)
             TextButton(
-              onPressed: () => setState(() => tag = '全部'),
-              child: const Text('清除筛选'),
+              onPressed: () => setState(selectedTags.clear),
+              child: Text('清除筛选（${selectedTags.length}）'),
             ),
         ],
       ),
@@ -615,10 +626,13 @@ class _HomeScreenState extends State<HomeScreen> {
               const Icon(Icons.search_off_rounded, size: 40, color: muted),
               const SizedBox(height: 12),
               const Text('暂时没有这道菜'),
-              const Text('试试「番茄」「南瓜」，或者清除筛选。', style: TextStyle(color: muted)),
+              const Text(
+                '试试减少所选标签、换个关键词，或者清除筛选。',
+                style: TextStyle(color: muted),
+              ),
               TextButton(
                 onPressed: () => setState(() {
-                  tag = '全部';
+                  selectedTags.clear();
                   query = '';
                   search.clear();
                 }),
