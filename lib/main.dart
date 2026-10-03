@@ -8,6 +8,9 @@ import 'content.dart';
 import 'food_art.dart';
 import 'kitchen_state.dart';
 import 'models.dart';
+import 'ingredient_line.dart';
+import 'dish_art.dart';
+import 'catalog_filter.dart';
 
 const ink = Color(0xFF293A2D),
     muted = Color(0xFF737D70),
@@ -16,6 +19,7 @@ const paper = Color(0xFFFAF9F4), sage = Color(0xFFEBEFE3);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await loadCatalog();
   if (kIsWeb) WidgetsBinding.instance.ensureSemantics();
   final state = KitchenState(await SharedPreferences.getInstance());
   unawaited(state.restoreAlarms(recipes));
@@ -209,7 +213,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int tab = 0;
-  String tag = '全部', query = '', knowledgeQuery = '';
+  final Set<String> selectedTags = {};
+  String query = '', knowledgeQuery = '';
+  int recipeLimit = 24, knowledgeLimit = 30;
   final search = TextEditingController();
   KitchenState get s => widget.state;
   @override
@@ -467,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(
                         height: 165,
                         width: double.infinity,
-                        child: FoodArt(featured.art),
+                        child: DishArt(featured),
                       ),
                     ],
                   )
@@ -476,10 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(flex: 5, child: text),
                       Expanded(
                         flex: 6,
-                        child: SizedBox(
-                          height: 240,
-                          child: FoodArt(featured.art),
-                        ),
+                        child: SizedBox(height: 240, child: DishArt(featured)),
                       ),
                     ],
                   ),
@@ -505,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   tab = 1;
                   query = name;
                   search.text = name;
-                  tag = '全部';
+                  selectedTags.clear();
                 }),
               ),
             )
@@ -527,21 +530,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const double smallFont = 29;
   List<Widget> findRecipes() {
-    final list = recipes
-        .where(
-          (r) =>
-              (tag == '全部' || r.tags.contains(tag)) &&
-              (query.isEmpty ||
-                  ('${r.name} ${r.tags.join(' ')} ${r.ingredients.map((i) => i.name).join(' ')}')
-                      .contains(query.trim())),
-        )
-        .toList();
+    final list = filterRecipes(recipes, selectedTags, query);
     return [
       const SectionTitle('找一道想吃的菜', '从熟悉的家常味开始'),
       TextField(
         controller: search,
         decoration: InputDecoration(
-          hintText: '搜菜名、食材，比如「番茄」',
+          hintText: '搜菜名、食材，多词用空格分开',
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: query.isNotEmpty
               ? IconButton(
@@ -554,17 +549,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               : null,
         ),
-        onChanged: (v) => setState(() => query = v),
+        onChanged: (v) => setState(() {
+          query = v;
+          recipeLimit = 24;
+        }),
       ),
       const SizedBox(height: 20),
-      ...[
-        '菜系|家常菜',
-        '做法|炒|炖|蒸',
-        '食材|牛肉|猪肉|鸡肉|鸡蛋|蔬菜',
-        '场景|快手菜|下饭菜|汤羹|一人食',
-        '难度|第一次做饭|简单|进阶',
-      ].map((group) {
-        final items = group.split('|');
+      const Text(
+        '标签可多选，菜谱需同时符合所选标签',
+        style: TextStyle(color: muted, fontSize: 13),
+      ),
+      const SizedBox(height: 12),
+      ...recipeFilterGroups.entries.map((group) {
+        final items = [group.key, ...group.value];
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Wrap(
@@ -584,9 +581,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   .map(
                     (t) => FilterChip(
                       label: Text(t),
-                      selected: tag == t,
-                      onSelected: (_) =>
-                          setState(() => tag = tag == t ? '全部' : t),
+                      selected: selectedTags.contains(t),
+                      onSelected: (selected) => setState(() {
+                        recipeLimit = 24;
+                        if (selected) {
+                          selectedTags.add(t);
+                        } else {
+                          selectedTags.remove(t);
+                        }
+                      }),
                       side: BorderSide.none,
                       backgroundColor: Colors.white,
                       selectedColor: const Color(0xFFFFDEC9),
@@ -600,10 +603,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text('${list.length} 道菜谱', style: const TextStyle(color: muted)),
           const Spacer(),
-          if (tag != '全部')
+          if (selectedTags.isNotEmpty)
             TextButton(
-              onPressed: () => setState(() => tag = '全部'),
-              child: const Text('清除筛选'),
+              onPressed: () => setState(selectedTags.clear),
+              child: Text('清除筛选（${selectedTags.length}）'),
             ),
         ],
       ),
@@ -615,10 +618,13 @@ class _HomeScreenState extends State<HomeScreen> {
               const Icon(Icons.search_off_rounded, size: 40, color: muted),
               const SizedBox(height: 12),
               const Text('暂时没有这道菜'),
-              const Text('试试「番茄」「南瓜」，或者清除筛选。', style: TextStyle(color: muted)),
+              const Text(
+                '试试减少所选标签、换个关键词，或者清除筛选。',
+                style: TextStyle(color: muted),
+              ),
               TextButton(
                 onPressed: () => setState(() {
-                  tag = '全部';
+                  selectedTags.clear();
                   query = '';
                   search.clear();
                 }),
@@ -628,36 +634,58 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         )
       else
-        recipeGrid(list),
+        recipeGrid(list.take(recipeLimit).toList()),
+      if (list.length > recipeLimit)
+        TextButton(
+          onPressed: () => setState(() => recipeLimit += 24),
+          child: Text(
+            '加载更多菜谱（已显示 ${recipeLimit.clamp(0, list.length)} / ${list.length}）',
+          ),
+        ),
     ];
   }
 
-  List<Widget> library() => [
-    const SectionTitle('厨房里的「为什么」', '食材、火候、方法和安全，都有答案'),
-    TextField(
-      decoration: const InputDecoration(
-        hintText: '搜索知识，比如「焯水」',
-        prefixIcon: Icon(Icons.search),
+  List<Widget> library() {
+    final words = knowledgeQuery
+        .trim()
+        .split(RegExp(r'[\s,，、]+'))
+        .where((w) => w.isNotEmpty);
+    final list = knowledgeCards
+        .where(
+          (k) => words.every(
+            (w) =>
+                '${k.title} ${k.category} ${k.summary} ${k.explanation} ${k.sourceName}'
+                    .contains(w),
+          ),
+        )
+        .toList();
+    return [
+      const SectionTitle('厨房里的「为什么」', '食材、方法与安全，逐条查看内容依据'),
+      TextField(
+        decoration: const InputDecoration(
+          hintText: '搜索主题或机构，比如「冷藏」「FDA」',
+          prefixIcon: Icon(Icons.search),
+        ),
+        onChanged: (v) => setState(() {
+          knowledgeQuery = v;
+          knowledgeLimit = 30;
+        }),
       ),
-      onChanged: (v) => setState(() => knowledgeQuery = v),
-    ),
-    const SizedBox(height: 20),
-    ...knowledgeCards
-        .where(
-          (k) => '${k.title}${k.category}${k.summary}${k.explanation}'.contains(
-            knowledgeQuery.trim(),
+      const SizedBox(height: 20),
+      Text('${list.length} 条知识', style: const TextStyle(color: muted)),
+      const SizedBox(height: 12),
+      ...list.take(knowledgeLimit).map(knowledgeTile),
+      if (list.isEmpty) const Panel(child: Text('暂未找到，请调整关键词。')),
+      if (list.length > knowledgeLimit)
+        TextButton(
+          onPressed: () => setState(() => knowledgeLimit += 30),
+          child: Text(
+            '加载更多知识（已显示 ${knowledgeLimit.clamp(0, list.length)} / ${list.length}）',
           ),
-        )
-        .map(knowledgeTile),
-    if (knowledgeCards
-        .where(
-          (k) => '${k.title}${k.category}${k.summary}${k.explanation}'.contains(
-            knowledgeQuery.trim(),
-          ),
-        )
-        .isEmpty)
-      const Panel(child: Text('暂未找到，试试「火候」「番茄」或「安全」。')),
-  ];
+        ),
+    ];
+  }
+
   List<Widget> favorites() => [
     SectionTitle(
       '我的厨房收藏',
@@ -788,7 +816,7 @@ class RecipeCard extends StatelessWidget {
                 Positioned.fill(
                   child: Padding(
                     padding: const EdgeInsets.all(10),
-                    child: FoodArt(recipe.art),
+                    child: DishArt(recipe),
                   ),
                 ),
                 Positioned(
@@ -925,18 +953,20 @@ void showKnowledge(BuildContext context, KitchenState state, Knowledge k) {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              k.explanation,
-              style: const TextStyle(fontSize: 17, height: 1.9),
-            ),
-            const SizedBox(height: 24),
+            if (k.explanation != k.summary) ...[
+              Text(
+                k.explanation,
+                style: const TextStyle(fontSize: 17, height: 1.9),
+              ),
+              const SizedBox(height: 24),
+            ],
             Panel(
               color: sage,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '换一种做法，会怎样？',
+                  Text(
+                    k.actionTitle,
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 10),
@@ -1039,7 +1069,7 @@ void settings(BuildContext context, KitchenState s) => showModalBottomSheet(
           ],
           const SizedBox(height: 20),
           const Text(
-            '布布大王的菜谱 · 1.0.0',
+            '布布大王的菜谱 · 1.1.0',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const Text(
@@ -1134,7 +1164,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               Panel(
                 color: Color(r.color),
                 padding: const EdgeInsets.all(16),
-                child: SizedBox(height: 220, child: FoodArt(r.art)),
+                child: SizedBox(height: 220, child: DishArt(r)),
               ),
               const SizedBox(height: 24),
               Wrap(
@@ -1199,31 +1229,32 @@ class _RecipeScreenState extends State<RecipeScreen> {
               Panel(
                 child: Column(
                   children: r.ingredients
-                      .map(
-                        (i) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 9),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  i.name,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ),
-                              Flexible(
-                                child: Text(
-                                  i.quantity(count, r.servings),
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(color: muted),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
+                      .map((i) => IngredientLine(i, count, r.servings))
                       .toList(),
                 ),
               ),
+              if (r.sourceUrl.isNotEmpty) ...[
+                Text(
+                  '选品参考 · ${r.sourceName}',
+                  style: const TextStyle(fontSize: 12, color: muted),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final ok = await launchUrl(
+                        Uri.parse(r.sourceUrl),
+                        mode: LaunchMode.externalApplication,
+                      );
+                      if (!ok && context.mounted) {
+                        snack(context, '暂时无法打开来源，请联网后重试。');
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('查看选品参考（需联网）'),
+                  ),
+                ),
+              ],
               const SectionTitle('准备好工具', '厨房顺手，做菜就更从容'),
               Wrap(
                 spacing: 8,
@@ -1367,7 +1398,7 @@ class _CookScreenState extends State<CookScreen> with WidgetsBindingObserver {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 150, child: FoodArt(r.art)),
+            SizedBox(height: 150, child: DishArt(r)),
             const Text(
               '这一餐，你做到了！',
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800),
@@ -1457,7 +1488,10 @@ class _CookScreenState extends State<CookScreen> with WidgetsBindingObserver {
                                 style: TextStyle(fontSize: s.fontSize - 4),
                               ),
                               subtitle: Text(
-                                i.quantity(s.servings, r.servings),
+                                [
+                                  i.quantity(s.servings, r.servings),
+                                  if (i.note.isNotEmpty) i.note,
+                                ].join('\n'),
                               ),
                               value: s.checked.contains(i.name),
                               onChanged: (_) => s.check(i.name),

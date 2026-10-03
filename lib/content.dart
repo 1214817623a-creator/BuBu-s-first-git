@@ -1,4 +1,15 @@
 import 'models.dart';
+import 'catalog_loader.dart';
+
+final recipes = <Recipe>[...originalRecipes];
+final knowledgeCards = <Knowledge>[...originalKnowledge];
+Future<void>? _catalogLoad;
+Future<void> loadCatalog() => _catalogLoad ??= _loadCatalog();
+Future<void> _loadCatalog() async {
+  final catalog = await readCatalog();
+  recipes.addAll(catalog.recipes);
+  knowledgeCards.addAll(catalog.knowledge);
+}
 
 const washingSource =
     'https://www.fsis.usda.gov/food-safety/safe-food-handling-and-preparation/food-safety-basics/washing-food-does-it-promote-food';
@@ -9,7 +20,7 @@ const temperatureSource =
 const braiseSource =
     'https://iastate.pressbooks.pub/fshn115/chapter/11-1-moist-heat-methods-introduction/';
 
-const knowledgeCards = <Knowledge>[
+const originalKnowledge = <Knowledge>[
   Knowledge(
     'beef-choice',
     '牛腩怎么选？',
@@ -170,14 +181,14 @@ const knowledgeCards = <Knowledge>[
   ),
 ];
 
-const recipes = <Recipe>[
+const originalRecipes = <Recipe>[
   Recipe(
     id: 'tomato-beef',
     name: '番茄牛腩',
-    subtitle: '把秋天炖进一锅里',
+    subtitle: '湿热慢炖牛腩，番茄分段加入',
     art: 'stew',
     color: 0xFFFFE0CF,
-    description: '番茄的酸甜慢慢融进牛腩，留一勺浓汤拌饭。从挑肉到控制火候，每一步都有解释。',
+    description: '牛腩以小火湿热炖至软嫩；番茄分两次加入，分别形成汤底和保留块状口感。安全熟度与软嫩程度分别检查。',
     activeMinutes: 35,
     waitMinutes: 80,
     servings: 2,
@@ -191,8 +202,8 @@ const recipes = <Recipe>[
       Ingredient('姜', 10, '克'),
       Ingredient('食用油', 15, '毫升'),
       Ingredient('生抽', 15, '毫升'),
-      Ingredient('盐', 2, '克（最后尝味调整）'),
-      Ingredient('热水', 800, '毫升（以没过食材为准）'),
+      Ingredient('盐', 2, '克', note: '最后尝味调整'),
+      Ingredient('热水', 800, '毫升', note: '以没过食材为准'),
     ],
     steps: [
       CookStep(
@@ -263,10 +274,10 @@ const recipes = <Recipe>[
   Recipe(
     id: 'lotus-soup',
     name: '莲藕排骨汤',
-    subtitle: '一碗暖乎乎的秋日汤',
+    subtitle: '排骨先炖，莲藕按质地调整时间',
     art: 'soup',
     color: 0xFFE7E7D2,
-    description: '清爽排骨汤搭配粉糯莲藕。用小火和耐心，把家常食材炖出温暖。',
+    description: '排骨焯水后小火炖煮，加入莲藕继续炖至熟软。莲藕品种与块大小会影响口感，时间作为检查参考。',
     activeMinutes: 20,
     waitMinutes: 80,
     tags: ['家常菜', '炖', '猪肉', '汤羹', '简单'],
@@ -276,8 +287,8 @@ const recipes = <Recipe>[
       Ingredient('排骨', 500, '克'),
       Ingredient('莲藕', 400, '克'),
       Ingredient('姜', 10, '克'),
-      Ingredient('盐', 2, '克（尝味调整）'),
-      Ingredient('水', 1200, '毫升（保持没过食材）'),
+      Ingredient('盐', 2, '克', note: '尝味调整'),
+      Ingredient('水', 1200, '毫升', note: '保持没过食材'),
     ],
     steps: [
       CookStep(
@@ -330,10 +341,10 @@ const recipes = <Recipe>[
   Recipe(
     id: 'steamed-egg',
     name: '嫩滑蒸蛋',
-    subtitle: '第一次做饭，也能很温柔',
+    subtitle: '控制水蛋比例与蒸汽，检查中心熟度',
     art: 'egg',
     color: 0xFFFFECC5,
-    description: '两颗鸡蛋，一碗嫩滑。学会比例和蒸汽控制，把基础菜做好。',
+    description: '蛋液加温水调匀并过滤，以稳定蒸汽蒸至整体凝固。中心至少达到71°C，不以表面凝固代替测温。',
     activeMinutes: 8,
     waitMinutes: 12,
     tags: ['家常菜', '蒸', '鸡蛋', '快手菜', '第一次做饭'],
@@ -341,7 +352,7 @@ const recipes = <Recipe>[
     tools: ['蒸锅', '耐热碗和盘', '滤网', '食物温度计'],
     ingredients: [
       Ingredient('鸡蛋', 2, '个'),
-      Ingredient('温水', 150, '毫升（约蛋液体积 1.5 倍）'),
+      Ingredient('温水', 150, '毫升', note: '约蛋液体积 1.5 倍'),
       Ingredient('盐', 1, '克'),
       Ingredient('生抽', 5, '毫升'),
       Ingredient('香油', 2, '毫升'),
@@ -383,7 +394,7 @@ const recipes = <Recipe>[
   Recipe(
     id: 'greens',
     name: '蒜蓉小青菜',
-    subtitle: '一抹清绿，刚刚好',
+    subtitle: '菜梗与菜叶分段快炒',
     art: 'greens',
     color: 0xFFDAEDCF,
     description: '菜梗先下，菜叶后下。一道清爽快手菜，练习掌握翻炒和调味。',
@@ -396,7 +407,7 @@ const recipes = <Recipe>[
       Ingredient('小青菜', 300, '克'),
       Ingredient('蒜', 10, '克'),
       Ingredient('食用油', 10, '毫升'),
-      Ingredient('盐', 1.5, '克（尝味调整）'),
+      Ingredient('盐', 1.5, '克', note: '尝味调整'),
     ],
     steps: [
       CookStep(
@@ -436,7 +447,7 @@ const recipes = <Recipe>[
   Recipe(
     id: 'pumpkin',
     name: '清蒸南瓜',
-    subtitle: '把南瓜的甜留住',
+    subtitle: '均匀切块，稳定蒸汽蒸至软熟',
     art: 'pumpkin',
     color: 0xFFFFDFC1,
     description: '只需要南瓜和蒸汽。少一点调味，尝到食材本来的香甜。',
@@ -499,7 +510,7 @@ const recipes = <Recipe>[
       Ingredient('姜', 10, '克'),
       Ingredient('生抽', 15, '毫升'),
       Ingredient('食用油', 10, '毫升'),
-      Ingredient('热水', 400, '毫升（基本覆盖食材）'),
+      Ingredient('热水', 400, '毫升', note: '基本覆盖食材'),
     ],
     steps: [
       CookStep(

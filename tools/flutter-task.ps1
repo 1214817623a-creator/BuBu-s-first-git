@@ -12,7 +12,8 @@ Set-Location B:\
 $env:PUB_CACHE = 'B:\.tooling\pub-cache'
 $env:GRADLE_USER_HOME = 'B:\.tooling\gradle-cache'
 $projectJdk = Get-ChildItem -LiteralPath 'B:\.tooling\jdk21' -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($projectJdk) { & .\.tooling\flutter\bin\flutter.bat config --jdk-dir $projectJdk.FullName --android-sdk 'B:\.tooling\android-sdk' | Out-Null }
+if ($projectJdk) { $env:JAVA_HOME = $projectJdk.FullName }
+$env:ANDROID_HOME = 'B:\.tooling\android-sdk'
 switch ($Task) {
   'check' {
     & .\.tooling\flutter\bin\flutter.bat analyze

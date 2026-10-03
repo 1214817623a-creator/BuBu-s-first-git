@@ -5,9 +5,11 @@ import 'package:bubu_kitchen/main.dart';
 import 'package:bubu_kitchen/kitchen_state.dart';
 import 'package:bubu_kitchen/content.dart';
 import 'package:bubu_kitchen/models.dart';
+import 'package:bubu_kitchen/catalog_filter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(loadCatalog);
   Future<KitchenState> fresh() async {
     SharedPreferences.setMockInitialValues({});
     return KitchenState(await SharedPreferences.getInstance());
@@ -94,6 +96,61 @@ void main() {
     expect(t.remaining(DateTime.now()), 0);
     expect(t.paused, isFalse);
   });
+  for (final width in [360.0, 412.0]) {
+    testWidgets('combine and clear recipe tags at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(KitchenApp(await fresh()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('找道菜'));
+      await tester.pumpAndSettle();
+
+      Finder chip(String label) => find.widgetWithText(FilterChip, label);
+      Future<void> tapVisible(Finder target) async {
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+      }
+
+      await tapVisible(chip('猪肉'));
+      await tapVisible(chip('炖'));
+      await tapVisible(chip('汤羹'));
+      for (final label in ['猪肉', '炖', '汤羹']) {
+        expect(tester.widget<FilterChip>(chip(label)).selected, isTrue);
+      }
+      final matching = filterRecipes(recipes, {'猪肉', '炖', '汤羹'}, '');
+      expect(find.text('${matching.length} 道菜谱'), findsOneWidget);
+      expect(find.text('莲藕排骨汤'), findsOneWidget);
+
+      // Adding an incompatible tag must narrow to zero, even within one group.
+      await tapVisible(chip('牛肉'));
+      expect(tester.widget<FilterChip>(chip('猪肉')).selected, isTrue);
+      expect(find.text('0 道菜谱'), findsOneWidget);
+      await tapVisible(chip('牛肉'));
+      expect(find.text('${matching.length} 道菜谱'), findsOneWidget);
+
+      await tester.ensureVisible(find.byType(TextField));
+      await tester.enterText(find.byType(TextField), '番茄 牛腩');
+      await tester.pumpAndSettle();
+      expect(find.text('0 道菜谱'), findsOneWidget);
+      await tapVisible(find.text('清除筛选（3）'));
+      expect(find.text('1 道菜谱'), findsOneWidget);
+      expect(find.text('番茄牛腩'), findsOneWidget);
+      for (final label in ['猪肉', '炖', '汤羹']) {
+        expect(tester.widget<FilterChip>(chip(label)).selected, isFalse);
+      }
+      await tapVisible(find.byTooltip('清空搜索'));
+      expect(find.text('${recipes.length} 道菜谱'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  }
   for (final width in [360.0, 412.0, 1100.0]) {
     testWidgets('home and recipe detail fit width $width', (tester) async {
       tester.view.physicalSize = Size(width, 900);
